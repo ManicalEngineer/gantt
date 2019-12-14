@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+</head>
+<style>
+	
+	table {
+		width: 100vw;
+	}
+
+	.date {
+		background: rgba(0,0,127,.6);
+		width: 5%;
+		height: 70px;
+		border-radius: 15px;
+		text-align: center;
+	}
+
+	.task {
+		width: 9%;
+		height: 70px;
+		text-align: center;
+	}
+
+	.time {
+		background: rgba(0,0,127,.6);
+		height: 70px;
+		width: 15%;
+		border-radius: 15px;
+	}
+
+	#header {
+		width: 15%;
+		height: 70px;
+		text-align: center;
+	}
+
+	#edit-task {
+		display: none;
+		position: absolute;
+		z-index: 1;
+		width: 25vw;
+		height: 25vh;
+		background: rgb(254,0,0);
+		border-radius: 15px;
+	}
+
+	#edit-task > div {
+		margin: auto;
+		padding: 10px;
+		color: rgb(254, 254, 254);
+	}
+
+	#edit-task > input, select, label {
+		margin: 5px;
+	}
+
+</style>
+<body>
+	<table id="chart">
+		
+	</table>
+	<div id="config-container">
+		<h2>Configure Chart</h2>
+		<label for="start-date-chart">Start Date</label>
+		<input id="start-date-chart" class="chart-config" type="date"><br>
+		<label for="durration-chart">Chart Durration</label>
+		<input id="durration-chart" class="chart-config" type="number"><br>
+		<button id="update-btn">Update Configuration</button>
+	</div>
+	<div id="add-task-container">
+		<h2>Add A Task</h2>
+		<label for="start-date">Start Date</label>
+		<input id="start-date" class="task-data" type="date"><br>
+		<label for="durration">Task Durration</label>
+		<input id="durration" class="task-data" type="number"><br>
+		<label for="task-name">Task Name</label>
+		<input id="task-name" class="task-data" type="text"><br>
+		<label for="depend-task">Dependancy</label>
+		<select id="depend-task" class="task-data">
+			<option value="">None</option>
+		</select>
+		<button id="add-btn">Add Task</button>
+	</div>
+
+	<div id="edit-task">
+		<div>
+			<label for="start-date-edit">Start Date</label>
+			<input id="start-date-edit" class="task-data" type="date"><br>
+			<label for="durration-edit">Task Durration</label>
+			<input id="durration-edit" class="task-data" type="number"><br>
+			<label for="task-name-edit">Task Name</label>
+			<input id="task-name-edit" class="task-data" type="text"><br>
+			<label for="depend-task-edit">Dependancy</label>
+			<select id="depend-task-edit" class="task-data">
+				<option value="">None</option>
+			</select>
+
+			<button id="edit-btn">Edit Button</button>
+
+		</div>
+	</div>
+</body>
+
+<script type="text/javascript" charset="utf-8" async defer>
+	
+	Date.prototype.addDays = function(days) {
+		var date = new Date(this.valueOf());
+		date.setDate(date.getDate() + days);
+		return date;
+	}
+
+	Date.prototype.stringDate = function(){
+		var day = this.getDate();
+		var month = parseInt(this.getMonth()) + 1;
+		var year = this.getFullYear();
+		var dateString = '';
+		if(day.toString().length < 2){
+			day = "0" + day;
+		}
+
+		if(month.toString().length < 2){
+			month = "0" + month;
+		}
+
+		dateString = year + "-" + month + "-" + day;
+		return dateString;
+	}
+
+	var chart = document.getElementById("chart");
+	var updateBtn = document.getElementById("update-btn");
+	var addBtn = document.getElementById("add-btn");
+	var editBtn = document.getElementById("edit-btn");
+	var chartObj = {
+		'Chart': chart,
+		'Start': "",
+		'Durration': "",
+		'Tasks': [
+				  ]
+	};
+
+	var month = new Array();
+	month[0] = "JAN";
+	month[1] = "FEB";
+	month[2] = "MAR";
+	month[3] = "APR";
+	month[4] = "MAY";
+	month[5] = "JUN";
+	month[6] = "JUL";
+	month[7] = "AUG";
+	month[8] = "SEPT";
+	month[9] = "OCT";
+	month[10] = "NOV";
+	month[11] = "DEC";
+
+	function updateDep(){
+		var depend = document.getElementsByTagName("select");
+		var numDep = chartObj.Tasks.length;
+
+		for(var i = 0; i < depend.length; i++){
+			for(var d = 0; d < numDep; d++){
+				var option = document.createElement("option");
+				option.setAttribute("value", chartObj.Tasks[d].Task);
+				option.text = chartObj.Tasks[d].Task;
+				depend[i].add(option);
+			}
+		}
+	}	
+
+	function dayDiff(date1, date2){
+		var day_length = 1000 * 60 * 60 * 24;
+		var msDiff = date1.getTime() - date2.getTime();
+
+		var days = Math.round(msDiff/day_length);
+
+		return days;
+	}
+
+	function editTask(taskObj, rowObj){
+
+		var spanLen = dayDiff(taskObj.Start, chartObj.Start);
+		
+		console.log(spanLen);
+
+		if( rowObj.cells.length < 3 ){
+			if( spanLen > 0 ){
+				console.log("In HERE")
+				var newCell = rowObj.insertCell(1);
+				rowObj.cells[0].innerHTML = taskObj.Task;
+				rowObj.cells[1].setAttribute("colspan", spanLen);
+				rowObj.cells[2].setAttribute("colspan", taskObj.Durration);
+			}else{
+				rowObj.cells[0].innerHTML = taskObj.Task;
+				rowObj.cells[1].setAttribute("colspan", taskObj.Durration);
+			}
+		}else{
+			rowObj.cells[0].innerHTML = taskObj.Task;
+			rowObj.cells[1].setAttribute("colspan", spanLen);
+			rowObj.cells[2].setAttribute("colspan", taskObj.Durration);
+		}
+	}
+
+	function addTask(start, durration, name, dependancy, chart){
+		var newTask = { 'Task_ID': chart.Tasks.length,
+						'Task': name,
+						'Start': start,
+						'Durration': durration,
+						'Dependancy': dependancy}
+		chart.Tasks.push(newTask);
+
+		var newTaskRow = chart.Chart.insertRow(-1);
+		var span = durration;
+		var blankCells = dateDiff(chart.Start, start);
+		var taskCell = newTaskRow.insertCell(-1);
+		taskCell.setAttribute("class", "task");
+		taskCell.innerHTML = name;
+		if(blankCells > 0){
+			var spaceCell = newTaskRow.insertCell(-1)
+			spaceCell.setAttribute("colspan", blankCells);
+		}
+		var spanCell = newTaskRow.insertCell(-1);
+		spanCell.setAttribute("class", "time");
+		spanCell.setAttribute("colspan", durration);
+		spanCell.setAttribute("id", "Task-" + chart.Tasks[chart.Tasks.length - 1].Task_ID)
+		updateDep();
+		spanCell.addEventListener("click", function(e){
+			var modal = document.getElementById("edit-task");
+			modal.setAttribute("task", e.target.id);
+			modal.style.display = "block";
+			modal.style.position = "absolute";
+			modal.style.left = e.clientX + "px";
+			modal.style.top = e.clientY + "px";
+			var sDate = document.getElementById("start-date-edit");
+			var eName = document.getElementById("task-name-edit");
+			var eDur = document.getElementById("durration-edit");
+			var eDep = document.getElementById("depend-task-edit");
+
+			var dateString = chartObj.Tasks[parseInt(e.target.id.slice(5))].Start.stringDate();
+
+			sDate.value = new Date(Date.parse(sDate.value));
+			
+			eDur.value = chartObj.Tasks[parseInt(e.target.id.slice(5))].Durration;
+			eName.value = chartObj.Tasks[parseInt(e.target.id.slice(5))].Task;
+
+			eDep.value = chartObj.Tasks[parseInt(e.target.id.slice(5))].Dependancy;
+
+		});
+
+	};
+
+	function updateChart(start, durration, chart){
+		chart.Start = start;
+		chart.Durration = durration;
+		if(chart.Chart.rows.length > 0){
+			chart.Chart.deleteRow(0);
+		}
+		var newHead = chart.Chart.insertRow(0);
+		var taskHead = newHead.insertCell(0)
+		taskHead.id = "header";
+		taskHead.innerHTML = "<h2>Task<h2>";
+
+		for(var d = 0; d < durration; d++){
+			var newDate = startDateCorrected.addDays(d);
+			dateString = newDate.getDate() + month[newDate.getMonth()] + newDate.getFullYear();
+			var dateCell = newHead.insertCell(-1);
+			dateCell.innerHTML = dateString;
+			dateCell.classList.add("date");
+		}
+		updateDep();
+	};
+
+	function dateDiff(startDate, endDate){
+		var timeDiff = endDate.getTime() - startDate.getTime();
+		var dayDiff = timeDiff / (1000 * 3600 * 24);
+		console.log(dayDiff);
+		return dayDiff;
+	}
+
+	editBtn.addEventListener('click', function(){
+			var sDate = document.getElementById("start-date-edit");
+			var eName = document.getElementById("task-name-edit");
+			var eDur = document.getElementById("durration-edit");
+			var eDep = document.getElementById("depend-task-edit");
+			var taskName = document.getElementById("edit-task").getAttribute("task");
+			var taskID = taskName.slice(5);
+			var rowObj = document.getElementById(taskName).parentElement;
+			console.log(rowObj);
+			var task = chartObj.Tasks[taskID];
+			task.Task = eName.value;
+			task.Durration = eDur.value;
+			task.Dependancy = eDep.value;
+			task.Start = new Date(sDate.value);
+
+			editTask(task, rowObj);
+	});
+
+	updateBtn.addEventListener('click', function(){
+		var startDateStr = document.getElementById("start-date-chart").value;
+		var startDate = new Date(Date.parse(startDateStr));
+		var durration = document.getElementById("durration-chart").value;
+		startDateCorrected = startDate.addDays(1);
+
+		updateChart(startDateCorrected, durration, chartObj);
+
+	});
+
+	addBtn.addEventListener('click', function(){
+		var depSelect = document.getElementById("depend-task");
+		var dep = depSelect.options[depSelect.selectedIndex].value;
+		var startDateStr = document.getElementById("start-date").value;
+		var startDate = new Date(Date.parse(startDateStr));
+		var durration = document.getElementById("durration").value;
+		var name = document.getElementById("task-name").value;
+		startDateCorrected = startDate.addDays(1);
+
+		addTask(startDateCorrected, durration, name,  dep, chartObj);
+
+	});
+
+	window.addEventListener('click', function(e){
+		var target = e.target;
+		var editWin = document.getElementById("edit-task");
+		if((target.id != "edit-task" && !target.id.includes("Task-"))  && editWin.style.display != "none" &&target.className != "task-data"){
+			editWin.style.display = "none";
+		}
+	})
+
+</script>
+
+</html>
