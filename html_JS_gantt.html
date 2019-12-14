@@ -95,9 +95,10 @@
 			<label for="depend-task-edit">Dependancy</label>
 			<select id="depend-task-edit" class="task-data">
 				<option value="">None</option>
-			</select>
+			</select><br>
 
 			<button id="edit-btn">Edit Button</button>
+			<button id="delete-btn">Delete Button</button>
 
 		</div>
 	</div>
@@ -132,6 +133,7 @@
 	var updateBtn = document.getElementById("update-btn");
 	var addBtn = document.getElementById("add-btn");
 	var editBtn = document.getElementById("edit-btn");
+	var delBtn = document.getElementById("delete-btn");
 	var chartObj = {
 		'Chart': chart,
 		'Start': "",
@@ -161,7 +163,7 @@
 		for(var i = 0; i < depend.length; i++){
 			for(var d = 0; d < numDep; d++){
 				var option = document.createElement("option");
-				option.setAttribute("value", chartObj.Tasks[d].Task);
+				option.setAttribute("value", chartObj.Tasks[d].Task_ID);
 				option.text = chartObj.Tasks[d].Task;
 				depend[i].add(option);
 			}
@@ -171,9 +173,11 @@
 	function dayDiff(date1, date2){
 		var day_length = 1000 * 60 * 60 * 24;
 		var msDiff = date1.getTime() - date2.getTime();
-
-		var days = Math.round(msDiff/day_length);
-
+		if(msDiff < 0){
+			var days = Math.round(msDiff/(day_length))
+		}else{
+			var days = Math.round(msDiff/day_length);
+		}
 		return days;
 	}
 
@@ -185,7 +189,7 @@
 
 		if( rowObj.cells.length < 3 ){
 			if( spanLen > 0 ){
-				console.log("In HERE")
+				console.log("If");
 				var newCell = rowObj.insertCell(1);
 				rowObj.cells[0].innerHTML = taskObj.Task;
 				rowObj.cells[1].setAttribute("colspan", spanLen);
@@ -195,11 +199,20 @@
 				rowObj.cells[1].setAttribute("colspan", taskObj.Durration);
 			}
 		}else{
-			rowObj.cells[0].innerHTML = taskObj.Task;
-			rowObj.cells[1].setAttribute("colspan", spanLen);
-			rowObj.cells[2].setAttribute("colspan", taskObj.Durration);
+			if(spanLen == 0){
+				console.log("Else If");
+				rowObj.deleteCell(1);
+				rowObj.cells[0].innerHTML = taskObj.Task;
+				rowObj.cells[1].setAttribute("colspan", taskObj.Durration);
+			}else{
+				console.log("Outter Else");
+				rowObj.cells[0].innerHTML = taskObj.Task;
+				rowObj.cells[1].setAttribute("colspan", spanLen);
+				rowObj.cells[2].setAttribute("colspan", taskObj.Durration);
+			}
 		}
 	}
+
 
 	function addTask(start, durration, name, dependancy, chart){
 		var newTask = { 'Task_ID': chart.Tasks.length,
@@ -213,16 +226,31 @@
 		var span = durration;
 		var blankCells = dateDiff(chart.Start, start);
 		var taskCell = newTaskRow.insertCell(-1);
+		var sDate = document.getElementById("start-date-edit");
+		var eName = document.getElementById("task-name-edit");
+		var eDur = document.getElementById("durration-edit");
+		var eDep = document.getElementById("depend-task-edit");
+
+		if( dependancy != "" ){
+			var endDepTask = chartObj.Tasks[dependancy].Start.addDays(parseInt(chartObj.Tasks[dependancy].Durration));
+			console.log(endDepTask);
+			if(dayDiff(newTask.Start, endDepTask) < 0){
+				alert("Task can't start before end of dependant task");
+				return
+			}
+		}
+
 		taskCell.setAttribute("class", "task");
 		taskCell.innerHTML = name;
 		if(blankCells > 0){
 			var spaceCell = newTaskRow.insertCell(-1)
 			spaceCell.setAttribute("colspan", blankCells);
 		}
+
 		var spanCell = newTaskRow.insertCell(-1);
 		spanCell.setAttribute("class", "time");
 		spanCell.setAttribute("colspan", durration);
-		spanCell.setAttribute("id", "Task-" + chart.Tasks[chart.Tasks.length - 1].Task_ID)
+		spanCell.setAttribute("id", "Task-" + chart.Tasks[chart.Tasks.length - 1].Task_ID);
 		updateDep();
 		spanCell.addEventListener("click", function(e){
 			var modal = document.getElementById("edit-task");
@@ -231,14 +259,10 @@
 			modal.style.position = "absolute";
 			modal.style.left = e.clientX + "px";
 			modal.style.top = e.clientY + "px";
-			var sDate = document.getElementById("start-date-edit");
-			var eName = document.getElementById("task-name-edit");
-			var eDur = document.getElementById("durration-edit");
-			var eDep = document.getElementById("depend-task-edit");
 
 			var dateString = chartObj.Tasks[parseInt(e.target.id.slice(5))].Start.stringDate();
 
-			sDate.value = new Date(Date.parse(sDate.value));
+			sDate.value = dateString;
 			
 			eDur.value = chartObj.Tasks[parseInt(e.target.id.slice(5))].Durration;
 			eName.value = chartObj.Tasks[parseInt(e.target.id.slice(5))].Task;
@@ -273,24 +297,32 @@
 	function dateDiff(startDate, endDate){
 		var timeDiff = endDate.getTime() - startDate.getTime();
 		var dayDiff = timeDiff / (1000 * 3600 * 24);
-		console.log(dayDiff);
 		return dayDiff;
 	}
 
 	editBtn.addEventListener('click', function(){
-			var sDate = document.getElementById("start-date-edit");
+			var eDate = document.getElementById("start-date-edit");
 			var eName = document.getElementById("task-name-edit");
 			var eDur = document.getElementById("durration-edit");
 			var eDep = document.getElementById("depend-task-edit");
 			var taskName = document.getElementById("edit-task").getAttribute("task");
 			var taskID = taskName.slice(5);
 			var rowObj = document.getElementById(taskName).parentElement;
-			console.log(rowObj);
 			var task = chartObj.Tasks[taskID];
 			task.Task = eName.value;
 			task.Durration = eDur.value;
 			task.Dependancy = eDep.value;
-			task.Start = new Date(sDate.value);
+			var startDate = new Date(Date.parse(eDate.value));
+			task.Start = startDate.addDays(1);
+
+			if( task.Dependancy != "" ){
+				var endDepTask = chartObj.Tasks[task.Dependancy].Start.addDays(parseInt(chartObj.Tasks[task.Dependancy].Durration));
+				console.log(endDepTask);
+				if(dayDiff(task.Start, endDepTask) < 0){
+					alert("Task can't start before end of dependant task");
+					return
+				}
+			}
 
 			editTask(task, rowObj);
 	});
@@ -313,9 +345,16 @@
 		var durration = document.getElementById("durration").value;
 		var name = document.getElementById("task-name").value;
 		startDateCorrected = startDate.addDays(1);
-
 		addTask(startDateCorrected, durration, name,  dep, chartObj);
+	});
 
+	delBtn.addEventListener('click', function(e){
+		var taskName = document.getElementById("edit-task").getAttribute("task");
+		var taskID = taskName.slice(5);
+		var rowObj = document.getElementById(taskName).parentElement;
+		var rowInd = rowObj.rowIndex;
+		rowObj.parentElement.deleteRow(rowInd);
+		
 	});
 
 	window.addEventListener('click', function(e){
